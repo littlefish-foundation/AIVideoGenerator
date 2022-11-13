@@ -8,6 +8,9 @@ openai.api_key = mytoken.OPENAI_API_KEY
 ##openai.Model.list()
 
 
+#defines
+tmp_folder = 'tmp'
+
 # load/show image from disk
 filename = input("Enter existing filename (ex: image02.png): ")
 while True:
@@ -48,7 +51,7 @@ image = image.crop((0+16,0+16,1056-16,1056-16))
 
 path_nowatermark = filename.split('.')[0] + "_no_watermark.png"
 
-image.save(path_nowatermark)
+image.save(os.path.join(tmp_folder, path_nowatermark)
 
 
 print("watermark removed '{0}_{1}px_nowatermark.{2}' written...".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
