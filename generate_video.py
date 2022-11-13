@@ -8,7 +8,7 @@ from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # get all upscaled images and sort by numeric value
-upscaled_image_files = glob.glob("image*_upscaled.png")
+upscaled_image_files = glob.glob("image0*.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
 # upscaled_image_files
 
@@ -19,10 +19,10 @@ for idx, upscaled_image in enumerate(upscaled_image_files):
     image = Image.open(upscaled_image)
 
     # parameters HD video 60 fps used for images crop and scale
-    video_resolution_width  = 992   # 1280
+    video_resolution_width  = 992   # 1280 
     video_resolution_height = 558   # 720
-    fps = 30           # 60
-    seconds_image = 6  # 6
+    fps = 50           # 60
+    seconds_image = 3  # 6
     upscaled_image_width  = 3968
     upscaled_image_height = 3968
     nr_of_crops = fps * seconds_image
@@ -66,4 +66,4 @@ image_files = glob.glob(image_folder + "/movieImg_*.png")
 image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
 
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-clip.write_videofile(video_name, fps=60)
+clip.write_videofile(video_name, fps=50)
