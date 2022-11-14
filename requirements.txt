@@ -1,3 +1,4 @@
 replicate 
 moviepy 
 decorator==4.4.2
+openai

@@ -8,9 +8,57 @@ from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # get all upscaled images and sort by numeric value
-upscaled_image_files = glob.glob("image*_upscaled.png")
+upscaled_image_files = glob.glob("image**.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
-# upscaled_image_files
+# generate upscaled_image_files
+
+os.environ['REPLICATE_API_TOKEN']=mytoken.REPLICATE_API_TOKEN
+
+swinir_folder = 'swinir'
+os.makedirs(swinir_folder, exist_ok=True)
+
+model = replicate.models.get("jingyunliang/swinir")
+
+for idx, upscaled_image in enumerate(upscaled_image_files):
+    print("geretaing upscaled images")
+
+    output = model.predict(image=open(upscaled_image, "rb"),
+                       task_type="Real-World Image Super-Resolution-Large",
+                       noise=15,
+                       jpeg=40)
+    r = requests.get(output, allow_redirects=True, stream=True)
+    image = Image.open(r.raw)
+
+    # os.path.join(tmp_folder, path_mask)
+
+    image.save(os.path.join(swinir_folder, "{0}_{1}px_upscaled.{2}".format(upscaled_image.split('.')[0], image.size[0], upscaled_image.split('.')[1])))
+
+
+'''
+
+## upscale and de-noise the image
+## load the swinir enlarge and denoise model
+model = replicate.models.get("jingyunliang/swinir")
+# load/show image from disk (same image)
+print("Calculating image enlargement + denoise... 60 sec")
+nowatermark = "{0}_{1}px_nowatermark.{2}".format(filename.split('.')[0], image.size[0], filename.split('.')[1])
+output = model.predict(image=open(nowatermark, "rb"),
+                       task_type="Real-World Image Super-Resolution-Large",
+                       noise=15,
+                       jpeg=40)
+r = requests.get(output, allow_redirects=True, stream=True)
+image = Image.open(r.raw)
+# save the upscaled image: image02_3968px_upscaled.png
+image.save("{0}_{1}px_upscaled.{2}".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
+print("enlarged file for video '{0}_{1}px_upscaled.{2}' written...".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
+print("")
+
+
+
+
+
+
+
 
 for idx, upscaled_image in enumerate(upscaled_image_files):
     print("starting new batch of images")
@@ -19,10 +67,10 @@ for idx, upscaled_image in enumerate(upscaled_image_files):
     image = Image.open(upscaled_image)
 
     # parameters HD video 60 fps used for images crop and scale
-    video_resolution_width  = 992   # 1280
+    video_resolution_width  = 992   # 1280 
     video_resolution_height = 558   # 720
-    fps = 30           # 60
-    seconds_image = 6  # 6
+    fps = 50           # 60
+    seconds_image = 3  # 6
     upscaled_image_width  = 3968
     upscaled_image_height = 3968
     nr_of_crops = fps * seconds_image
@@ -66,4 +114,6 @@ image_files = glob.glob(image_folder + "/movieImg_*.png")
 image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
 
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-clip.write_videofile(video_name, fps=60)
+clip.write_videofile(video_name, fps=50)
+
+'''
