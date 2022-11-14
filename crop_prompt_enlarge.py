@@ -25,17 +25,21 @@ print("")
 # load/show image from disk
 image = Image.open(filename)
 # save the original image with the watermark, include size: image02_1024px_origin.png
-image.save("{0}_{1}px_origin.{2}".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
+#image.save("{0}_{1}px_origin.{2}".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
 print("original file with watermark '{0}_{1}px_origin.{2}' written...".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
 print("")
 # remove watermark by removing 16px from all sides to preserve symmetry
 # this will result in an image 992x992 instead of 1024x1024
+
+image = image.resize((1056,1056))
 image = image.crop((0+16,0+16,1024-16,1024-16))
+
 # save the removed watermark original image: image02_1008px_nowatermark.png
 image.save("{0}_{1}px_nowatermark.{2}".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
 print("watermark removed '{0}_{1}px_nowatermark.{2}' written...".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
 print("")
 
+'''
 # load image to prompt pre-trained model
 model = replicate.models.get("methexis-inc/img2prompt")
 # call the API and predict a result stored in output variable
@@ -49,6 +53,8 @@ open("{0}_prompt.txt".format(filename.split('.')[0]), 'w').write(result)
 print("image2prompt file '{0}_prompt.txt' written...".format(filename.split('.')[0]))
 # print the result to the console
 print("\tPrompt:\n", result, "\n")
+
+'''
 
 ## upscale and de-noise the image
 ## load the swinir enlarge and denoise model
