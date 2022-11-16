@@ -5,6 +5,7 @@ import os
 import requests
 import glob
 import numpy as np
+import pandas as pd
 import moviepy.video.io.ImageSequenceClip
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -48,7 +49,7 @@ def generate_candidate_maskedimages(prompt, candidate_img_amount, filename, sess
     print("")
     return session_nr+1
 
-def generate_prompt_from_image(filename, session_nr):
+def generate_prompt_from_image(filename, session_nr, prompt, prompt_df):
     # load image to prompt pre-trained model
     model = replicate.models.get("methexis-inc/img2prompt")
     # call the API and predict a result stored in output variable
@@ -57,11 +58,13 @@ def generate_prompt_from_image(filename, session_nr):
     output = model.predict(image=open("{}{}_{}px_origin.png".format(filename, session_nr-1, 1024), "rb"))
     #  removes any leading and trailing space characters
     result = output.strip()
-    # store the image2prompt string to a text file: image1_prompt.txt
-    open("{}{}_prompt.txt".format(filename, session_nr-1), 'w').write(result)
+    # store the original user input 'prompt' text as well as the image2prompt string to a text file: image1_prompt.txt
+    open("{}{}_prompt.txt".format(filename, session_nr-1), 'w').write("User prompt:\n{}\nImage prompt:\n{}".format(prompt, result))
     print("image2prompt file '{}{}_prompt.txt' written...".format(filename, session_nr-1))
     # print the result to the console
     print("\tPrompt:\n", result, "\n")
+    tmp = pd.DataFrame(data={'userPrompt': [prompt], 'imagePrompt': [result]})
+    return pd.concat([prompt_df, tmp])
 
 def enlarge_selected_image(filename, session_nr):
     ## upscale 
@@ -83,6 +86,7 @@ os.environ['REPLICATE_API_TOKEN']=mytoken.REPLICATE_API_TOKEN
 os.environ['OPENAI_API_KEY']=mytoken.OPENAI_API_TOKEN
 openai.api_key = os.getenv("OPENAI_API_KEY")
 session_nr = 1
+prompt_df = pd.DataFrame()
 
 filename = str(input("Enter the 'filename' to save images to (ex: image): "))
 candidate_img_amount = int(input("Enter the amount of candidate images to choose from (1..9) (ex: 4): "))
@@ -107,7 +111,7 @@ print("original file '{}{}_{}px_origin.png' written...".format(filename, session
 print("")
 
 # generate the prompt from the selected image
-generate_prompt_from_image(filename, session_nr)
+prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
 
 # enlarge the selected image
 enlarge_selected_image(filename, session_nr)
@@ -134,13 +138,15 @@ while True:
         print("")
 
         # generate the prompt from the selected image
-        generate_prompt_from_image(filename, session_nr)
+        prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
 
         # enlarge the selected image
         enlarge_selected_image(filename, session_nr)
         continue
 
 ### starting the video generation
+# store the prompt text data DataFrame, without the index, utf-8 encoding, delimiter ','
+prompt_df.to_csv("{}_prompt.csv".format(filename), encoding='utf-8', sep=',', index=False)
 # get all upscaled images and sort by numeric value
 upscaled_image_files = glob.glob(filename+"*_upscaled.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -229,13 +235,14 @@ def duration_values_generator(timeperimage, downscale_pct, image_files, idx):
     second = (len(image_files)-first)/idx
     durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round(((100-downscale_pct)/100)*first), endpoint=False), 4).tolist())
     durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*first), endpoint=True), 4).tolist())
-    for i in range(2):
+    for i in range(idx):
         durations.extend(np.around(np.linspace(start=timeperimage*2, stop=timeperimage, num=round(((100-downscale_pct)/100)*second), endpoint=False), 4).tolist())
         durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*second), endpoint=True), 4).tolist())
     # here we then return the timetable list of each cropped image waiting time according to this algorithm, taking downscale percentage value cutoff in mind
     return durations
 
 # load all images into memory to build a movie, using the timetable (how long each image stay in frame)
-clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(sequence=image_files, durations=duration_values_generator(speed, downscale_pct, image_files, idx))
+durations = duration_values_generator(speed, downscale_pct, image_files, idx)
+clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(sequence=image_files, durations=durations)
 # write the video file to disk
 clip.write_videofile(video_name, fps=fps)
