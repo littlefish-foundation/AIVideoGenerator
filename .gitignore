@@ -165,5 +165,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .vscode/launch.json
-*_prompt.txt
+# *_prompt.txt
 image_prompt.csv
