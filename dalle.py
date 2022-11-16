@@ -8,6 +8,9 @@ openai.api_key = mytoken.OPENAI_API_KEY
 ##openai.Model.list()
 
 
+#defines
+tmp_folder = 'tmp'
+os.makedirs(tmp_folder, exist_ok=True)
 # load/show image from disk
 filename = input("Enter existing filename (ex: image02.png): ")
 while True:
@@ -38,8 +41,8 @@ image = Image.open(filename)
 #image_cropped.resize((1056,1056))
 #new_image.paste(image_cropped)
 
-image = image.resize((1056,1056))
-image = image.crop((0+16,0+16,1056-16,1056-16))
+#image = image.resize((1056,1056))
+#image = image.crop((0+16,0+16,1056-16,1056-16))
 
 
 
@@ -48,11 +51,8 @@ image = image.crop((0+16,0+16,1056-16,1056-16))
 
 path_nowatermark = filename.split('.')[0] + "_no_watermark.png"
 
-image.save(path_nowatermark)
+#image.save(os.path.join(tmp_folder, path_nowatermark))
 
-
-print("watermark removed '{0}_{1}px_nowatermark.{2}' written...".format(filename.split('.')[0], image.size[0], filename.split('.')[1]))
-print("")
 
 
 print("Creating Mask...")
@@ -72,7 +72,7 @@ image = image.resize((256,256))
 mask.putalpha(0)
 mask.paste(image, (384,384))
 path_mask = "{0}_{1}px_mask.{2}".format(filename.split('.')[0], mask.size[0], filename.split('.')[1])
-mask.save(path_mask)
+mask.save(os.path.join(tmp_folder, path_mask))
 print("mask '{0}' written...".format(path_mask))
 
 print("")
@@ -89,8 +89,8 @@ prompt_input = input("Enter prompt: ")
 
 
 res = openai.Image.create_edit(
-  image=open(path_mask, "rb"),
-  mask=open(path_mask, "rb"),
+  image=open(os.path.join(tmp_folder, path_mask), "rb"),
+  mask=open(os.path.join(tmp_folder, path_mask), "rb"),
   prompt=prompt_input,
   n=samples,
   size="1024x1024"
