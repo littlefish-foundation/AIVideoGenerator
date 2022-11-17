@@ -145,8 +145,34 @@ while True:
         continue
 
 ### starting the video generation
-# store the prompt text data DataFrame, without the index, utf-8 encoding, delimiter ','
-prompt_df.to_csv("{}_prompt.csv".format(filename), encoding='utf-8', sep=',', index=False)
+def store_prompt_data(filename):
+    # data based on https://github.com/pharmapsychotic/clip-interrogator
+    # available "mediums"   (cyberpunk art)        : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/mediums.txt
+    # available "artists"   (Vincent Lefevre)      : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/artists.txt
+    # available "Trending"  (Artstation)           : 
+    # available "movements" (retrofuturism)        : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/movements.txt
+    # available "flavors"   (synthwave, cityscape) : https://github.com/pharmapsychotic/clip-interrogator/blob/main/clip_interrogator/data/flavors.txt
+
+    # transform, clean and reshape the dataset
+    split = prompt_df['imagePrompt'].str.split(', ', expand=True)
+    prompt_df = pd.concat([prompt_df, split], axis=1)
+    prompt_df = prompt_df.drop(['imagePrompt'], axis=1)
+    flavors = prompt_df.iloc[:, 5:].apply(lambda row: ', '.join(row.values.astype(str)), axis=1)
+    columns = prompt_df.iloc[:, 5:].columns
+    prompt_df = prompt_df.drop(columns, axis=1)
+    prompt_df['Flavors'] = flavors
+    split = prompt_df[1].str.split(' by ', expand=True)
+    split.columns = ['Medium', 'Artist']
+    prompt_df = pd.concat([prompt_df, split], axis=1)
+    prompt_df = prompt_df.drop([1], axis=1)
+    prompt_df.columns = ['userPrompt', 'imagePrompt', 'Trending', 'Movement', 'Flavors', 'Medium', 'Artist']
+    prompt_df = prompt_df[['userPrompt', 'imagePrompt', 'Medium', 'Artist', 'Trending', 'Movement', 'Flavors']]
+
+    # store the prompt text data DataFrame, without the index, utf-8 encoding, delimiter ';'
+    prompt_df.to_csv("{}_prompt.csv".format(filename), encoding='utf-8', sep=';', index=False)
+
+# store and clean the prompt text data
+store_prompt_data(filename)
 # get all upscaled images and sort by numeric value
 upscaled_image_files = glob.glob(filename+"*_upscaled.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
