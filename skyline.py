@@ -49,9 +49,10 @@ def generate_candidate_maskedimages(prompt, candidate_img_amount, filename, sess
     print("")
     return session_nr+1
 
-def generate_prompt_from_image(filename, session_nr, prompt, prompt_df):
+def generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient):
+    # # not sure why, but to prevent the API from hanging indefenetly we refresh loading this token each time
     # load image to prompt pre-trained model
-    model = replicate.models.get("methexis-inc/img2prompt")
+    model = replicateclient.models.get("methexis-inc/img2prompt")
     # call the API and predict a result stored in output variable
     # this will take many seconds ~50sec to finish calculating
     print("Calculating image to prompt... 30 sec")
@@ -81,10 +82,9 @@ def enlarge_selected_image(filename, session_nr):
 
 # edit mytoken.py with your API TOKEN
 # example: REPLICATE_API_TOKEN = "f77b55967be209bc63a12038af9c09e0d3211996"
-# here we load the OS variable with the python variable token API id
-os.environ['REPLICATE_API_TOKEN']=mytoken.REPLICATE_API_TOKEN
-os.environ['OPENAI_API_KEY']=mytoken.OPENAI_API_TOKEN
+replicateclient = replicate.Client(api_token=mytoken.REPLICATE_API_TOKEN)
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
 session_nr = 1
 prompt_df = pd.DataFrame()
 
@@ -111,7 +111,7 @@ print("original file '{}{}_{}px_origin.png' written...".format(filename, session
 print("")
 
 # generate the prompt from the selected image
-prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
+prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient)
 
 # enlarge the selected image
 enlarge_selected_image(filename, session_nr)
@@ -138,7 +138,7 @@ while True:
         print("")
 
         # generate the prompt from the selected image
-        prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
+        prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient)
 
         # enlarge the selected image
         enlarge_selected_image(filename, session_nr)
@@ -152,7 +152,6 @@ def store_prompt_data(filename, prompt_df):
     # available "Trending"  (Artstation)           : 
     # available "movements" (retrofuturism)        : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/movements.txt
     # available "flavors"   (synthwave, cityscape) : https://github.com/pharmapsychotic/clip-interrogator/blob/main/clip_interrogator/data/flavors.txt
-
     # transform, clean and reshape the dataset
     split = prompt_df['imagePrompt'].str.split(', ', expand=True)
     prompt_df = pd.concat([prompt_df, split], axis=1)
