@@ -9,6 +9,10 @@ import pandas as pd
 import moviepy.video.io.ImageSequenceClip
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+pd.set_option('display.max_colwidth', 80)  # default 50, the maximum width in characters of a column
+pd.set_option('display.max_columns', 10)   # default 20, the maximum amount of columns in view 
+pd.set_option('display.max_rows', 120)      # default 60, the maximum amount of rows in view
+pd.set_option('display.expand_frame_repr', False)
 
 def generate_candidate_images(prompt, candidate_img_amount, filename, session_nr):
     # create/check a folders
@@ -166,12 +170,12 @@ def store_prompt_data(filename, prompt_df):
     prompt_df = prompt_df.drop([1], axis=1)
     prompt_df.columns = ['userPrompt', 'imagePrompt', 'Trending', 'Movement', 'Flavors', 'Medium', 'Artist']
     prompt_df = prompt_df[['userPrompt', 'imagePrompt', 'Medium', 'Artist', 'Trending', 'Movement', 'Flavors']]
-
     # store the prompt text data DataFrame, without the index, utf-8 encoding, delimiter ';'
     prompt_df.to_csv("{}_prompt.csv".format(filename), encoding='utf-8', sep=';', index=False)
+    return prompt_df
 
 # store and clean the prompt text data
-store_prompt_data(filename, prompt_df)
+prompt_df = store_prompt_data(filename, prompt_df)
 # get all upscaled images and sort by numeric value
 upscaled_image_files = glob.glob(filename+"*_upscaled.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -274,3 +278,7 @@ durations = duration_values_generator(0.02, downscale_pct, image_files, idx)
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(sequence=image_files, durations=durations)
 # write the video file to disk
 clip.write_videofile(video_name, fps=fps)
+
+# print out the final prompt data
+print("")
+print(prompt_df[['userPrompt', 'imagePrompt', 'Medium', 'Artist', 'Flavors']])
