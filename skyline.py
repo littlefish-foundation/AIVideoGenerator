@@ -145,7 +145,7 @@ while True:
         continue
 
 ### starting the video generation
-def store_prompt_data(filename):
+def store_prompt_data(filename, prompt_df):
     # data based on https://github.com/pharmapsychotic/clip-interrogator
     # available "mediums"   (cyberpunk art)        : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/mediums.txt
     # available "artists"   (Vincent Lefevre)      : https://github.com/pharmapsychotic/clip-interrogator/raw/main/clip_interrogator/data/artists.txt
@@ -172,7 +172,7 @@ def store_prompt_data(filename):
     prompt_df.to_csv("{}_prompt.csv".format(filename), encoding='utf-8', sep=';', index=False)
 
 # store and clean the prompt text data
-store_prompt_data(filename)
+store_prompt_data(filename, prompt_df)
 # get all upscaled images and sort by numeric value
 upscaled_image_files = glob.glob(filename+"*_upscaled.png")
 upscaled_image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
