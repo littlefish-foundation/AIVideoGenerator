@@ -216,8 +216,10 @@ pref_height = int(input("Enter the 'height'(px) of the video (ex: 720): "))
 ratio  = pref_height/pref_width
 width  = int(4096*(downscale_pct/100))
 height = int(width*ratio)
-fps = int(input("Enter the 'fps' of the video (ex: 30): "))
-seconds_image = int(input("Enter the duration(sec) of each AI image on the screen (ex: 4): "))
+# fps = int(input("Enter the 'fps' of the video (ex: 30): "))
+fps = 30
+# seconds_image = int(input("Enter the duration(sec) of each AI image on the screen (ex: 3): "))
+seconds_image = 3
 imgsize = 4096
 nr_of_crops = fps * seconds_image
 image_folder = 'images'
@@ -258,16 +260,17 @@ def duration_values_generator(timeperimage, downscale_pct, image_files, idx):
     durations = []
     first = (len(image_files)+idx)/(idx+1)
     second = (len(image_files)-first)/idx
-    durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round(((100-downscale_pct)/100)*first), endpoint=False), 4).tolist())
-    durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*first), endpoint=True), 4).tolist())
+    durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round(((100-downscale_pct)/100)*first), endpoint=False), 3).tolist())
+    durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*first), endpoint=True), 3).tolist())
     for i in range(idx):
-        durations.extend(np.around(np.linspace(start=timeperimage*2, stop=timeperimage, num=round(((100-downscale_pct)/100)*second), endpoint=False), 4).tolist())
-        durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*second), endpoint=True), 4).tolist())
+        durations.extend(np.around(np.linspace(start=timeperimage*2, stop=timeperimage, num=round(((100-downscale_pct)/100)*second), endpoint=False), 3).tolist())
+        durations.extend(np.around(np.linspace(start=timeperimage*1, stop=timeperimage, num=round((downscale_pct/100)*second), endpoint=True), 3).tolist())
     # here we then return the timetable list of each cropped image waiting time according to this algorithm, taking downscale percentage value cutoff in mind
     return durations
 
 # load all images into memory to build a movie, using the timetable (how long each image stay in frame)
-durations = duration_values_generator(speed, downscale_pct, image_files, idx)
+# durations = duration_values_generator(speed, downscale_pct, image_files, idx)
+durations = duration_values_generator(0.02, downscale_pct, image_files, idx)
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(sequence=image_files, durations=durations)
 # write the video file to disk
 clip.write_videofile(video_name, fps=fps)
