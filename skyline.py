@@ -281,4 +281,4 @@ clip.write_videofile(video_name, fps=fps)
 
 # print out the final prompt data
 print("")
-print(prompt_df[['userPrompt', 'imagePrompt', 'Medium', 'Artist', 'Flavors']])
+print(prompt_df[['userPrompt', 'imagePrompt', 'Medium', 'Artist', 'Flavors']].reset_index(drop=True))
