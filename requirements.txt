@@ -3,3 +3,4 @@ moviepy==1.0.3
 decorator==4.4.2
 openai==0.25.0
 numpy==1.22.4
+pandas==1.4.2
