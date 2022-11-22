@@ -99,23 +99,38 @@ print("")
 # ask the user for the fixed value 'downscale' percentage
 downscale_pct = int(input("Enter downscale percentage(%) (ex: 33): "))
 
-prompt = str(input("Enter an image prompt (ex: a white siamese cat): "))
-
-# generate and store candidate AI images using the prompt
-session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
-
-while True:
-    selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
-    if selection == 0:
-        print("you chose to retry")
-        prompt = str(input("Enter a new image prompt (ex: {}): ".format(prompt)))
-        session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr-1)
-    else:
-        break
-
-image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
-print("candidate image file you chose to select 'candidate_images/{}{}_candidate{}_1024px_original.png'".format(filename, session_nr-1, selection))
-print("")
+# give the user a choice to either start with their own image file or generate the first with AI
+startimage = str(input("If you want to start with prompt (press Enter), if you want to start with image (ex: image01.png): "))
+# check if an empty string was given, meaning to go for a prompt
+if len(startimage) == 0:
+    print(f"You chose to ask for a prompt")
+    prompt = str(input("Enter an image prompt (ex: a white siamese cat): "))
+    # generate and store candidate AI images using the prompt
+    session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
+    while True:
+        selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
+        if selection == 0:
+            print("you chose to retry")
+            prompt = str(input("Enter a new image prompt (ex: {}): ".format(prompt)))
+            session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr-1)
+        else:
+            break
+    image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
+    print("candidate image file you chose to select 'candidate_images/{}{}_candidate{}_1024px_original.png'".format(filename, session_nr-1, selection))
+    print("")
+else:
+    print(f"You have given a filename, checking if available...")
+    while True:
+        if os.path.isfile(startimage):
+            # when the filename is found, then confirm
+            print(f"your image '{startimage}'' is found")
+            break
+        else:
+            print(f"filename {startimage} does not exist")
+            startimage = str(input("Enter your correct image filename please: "))
+            continue
+    image = Image.open(startimage)
+    prompt = ''
 
 # save the original image, include size: image1_1024px_origin.png
 image.save("{}{}_{}px_origin.png".format(filename, session_nr-1, image.size[0]))
