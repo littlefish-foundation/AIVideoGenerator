@@ -53,9 +53,10 @@ def generate_candidate_maskedimages(prompt, candidate_img_amount, filename, sess
     print("")
     return session_nr+1
 
-def generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient):
+def generate_prompt_from_image(filename, session_nr, prompt, prompt_df):
     # # not sure why, but to prevent the API from hanging indefenetly we refresh loading this token each time
     # load image to prompt pre-trained model
+    replicateclient = replicate.Client(api_token=mytoken.REPLICATE_API_TOKEN)
     model = replicateclient.models.get("methexis-inc/img2prompt")
     # call the API and predict a result stored in output variable
     # this will take many seconds ~50sec to finish calculating
@@ -85,9 +86,8 @@ def enlarge_selected_image(filename, session_nr):
     print("")
 
 # edit mytoken.py with your API TOKEN
-# example: REPLICATE_API_TOKEN = "f77b55967be209bc63a12038af9c09e0d3211996"
-replicateclient = replicate.Client(api_token=mytoken.REPLICATE_API_TOKEN)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# example: OPENAI_API_TOKEN = "f77b55967be209bc63a12038af9c09e0d3211996"
+openai.api_key = mytoken.OPENAI_API_TOKEN
 
 session_nr = 1
 prompt_df = pd.DataFrame()
@@ -99,12 +99,20 @@ print("")
 # ask the user for the fixed value 'downscale' percentage
 downscale_pct = int(input("Enter downscale percentage(%) (ex: 33): "))
 
-prompt = str(input("Enter the DALLE2 prompt to generate image (ex: a white siamese cat): "))
+prompt = str(input("Enter an image prompt (ex: a white siamese cat): "))
 
 # generate and store candidate AI images using the prompt
 session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
 
-selection = int(input("Enter which image candidate you want to keep (ex: 1): "))
+while True:
+    selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
+    if selection == 0:
+        print("you chose to retry")
+        prompt = str(input("Enter a new image prompt (ex: {}): ".format(prompt)))
+        session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr-1)
+    else:
+        break
+
 image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
 print("candidate image file you chose to select 'candidate_images/{}{}_candidate{}_1024px_original.png'".format(filename, session_nr-1, selection))
 print("")
@@ -115,13 +123,13 @@ print("original file '{}{}_{}px_origin.png' written...".format(filename, session
 print("")
 
 # generate the prompt from the selected image
-prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient)
+prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
 
 # enlarge the selected image
 enlarge_selected_image(filename, session_nr)
 
 while True:
-    prompt = str(input("Enter the DALLE2 prompt to generate image (no input to stop) (ex: a white siamese cat): "))
+    prompt = str(input("Enter a new image prompt (no input=stop) (ex: {}): ".format(prompt)))
     if len(prompt) == 0:
         # when no input is given, STOP
         print(f'you chose to stop, starting video creation phase...')
@@ -131,7 +139,16 @@ while True:
         # generate and store new candidate AI images using the prompt
         session_nr = generate_candidate_maskedimages(prompt, candidate_img_amount, filename, session_nr, downscale_pct)
 
-        selection = int(input("Enter which image candidate you want to keep (ex: 1): "))
+        while True:
+            selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
+            if selection == 0:
+                # when input 0 is given, RETRY
+                print("you chose to retry")
+                prompt = str(input("Enter a new image prompt (no input=stop) (ex: {}): ".format(prompt)))
+                # session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
+                session_nr = generate_candidate_maskedimages(prompt, candidate_img_amount, filename, session_nr-1, downscale_pct)
+            else:
+                break
         image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
         print("candidate image file you chose to select 'candidate_images/{}{}_candidate{}_1024px_original.png'".format(filename, session_nr-1, selection))
         print("")
@@ -142,7 +159,7 @@ while True:
         print("")
 
         # generate the prompt from the selected image
-        prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df, replicateclient)
+        prompt_df = generate_prompt_from_image(filename, session_nr, prompt, prompt_df)
 
         # enlarge the selected image
         enlarge_selected_image(filename, session_nr)
