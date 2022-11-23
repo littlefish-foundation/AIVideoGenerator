@@ -14,7 +14,7 @@ pd.set_option('display.max_columns', 10)   # default 20, the maximum amount of c
 pd.set_option('display.max_rows', 120)      # default 60, the maximum amount of rows in view
 pd.set_option('display.expand_frame_repr', False)
 
-def generate_candidate_images(prompt, candidate_img_amount, filename, session_nr):
+def generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr):
     # create/check a folders
     os.makedirs("candidate_images", exist_ok=True)
     response = openai.Image.create(prompt=prompt, n=candidate_img_amount, size="1024x1024")
@@ -85,6 +85,38 @@ def enlarge_selected_image(filename, session_nr):
     print("enlarged file for video '{}{}_{}px_upscaled.png' written...".format(filename, session_nr-1, image.size[0]))
     print("")
 
+def generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr):
+    ### only to be used on the first image generation
+    ### here we use Stable Diffusion MidJourney version 4
+    # refresh load token id
+    replicateclient = replicate.Client(api_token=mytoken.REPLICATE_API_TOKEN)
+    # load the pre-trained model
+    model = replicateclient.models.get("prompthero/openjourney")
+    version = model.versions.get("9936c2001faa2194a261c01381f90e65261879985476014a0a37a334593a05eb")
+    # prepare extra words for the prompt to enable midjourney version 4
+    # prompt = f"mdjrny-v4 style {prompt}, highly detailed, masterpiece"
+    # call API and generate results
+    for output_nr in range(candidate_img_amount):
+        response = version.predict(prompt=prompt,          # string of text
+                                   width=768,              # Maximum size is 1024x768 or 768x1024 because of memory limits
+                                   height=768,             # Maximum size is 1024x768 or 768x1024 because of memory limits
+                                   num_outputs=1,          # Number of images to output (1..4)
+                                   num_inference_steps=80, # High value, the better the image quality, because of more refinement steps
+                                   guidance_scale=8)       # High value, the more closely it follows the prompt
+        # download the image data from the url
+        r = requests.get(response[0], allow_redirects=True, stream=True)
+        # load the image into pillow for further processing
+        image = Image.open(r.raw)
+        # upscale the image linearly
+        image = image.resize((1024, 1024))
+        # create/check a folder
+        os.makedirs("candidate_images", exist_ok=True)
+        # save the original candidate image: image1_candidate1_1024px_original.png
+        image.save("candidate_images/{}{}_candidate{}_{}px_original.png".format(filename, session_nr, output_nr+1, image.size[0]))
+        print("candidate image file 'candidate_images/{}{}_candidate{}_{}px_original.png' written...".format(filename, session_nr, output_nr+1, image.size[0]))
+    print("")
+    return session_nr+1
+ 
 # edit mytoken.py with your API TOKEN
 # example: OPENAI_API_TOKEN = "f77b55967be209bc63a12038af9c09e0d3211996"
 openai.api_key = mytoken.OPENAI_API_TOKEN
@@ -106,13 +138,15 @@ if len(startimage) == 0:
     print(f"You chose to ask for a prompt")
     prompt = str(input("Enter an image prompt (ex: a white siamese cat): "))
     # generate and store candidate AI images using the prompt
-    session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
+    # session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
+    session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr)
     while True:
         selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
         if selection == 0:
             print("you chose to retry")
             prompt = str(input("Enter a new image prompt (ex: {}): ".format(prompt)))
-            session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr-1)
+            # session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
+            session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr-1)
         else:
             break
     image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
@@ -160,7 +194,6 @@ while True:
                 # when input 0 is given, RETRY
                 print("you chose to retry")
                 prompt = str(input("Enter a new image prompt (no input=stop) (ex: {}): ".format(prompt)))
-                # session_nr = generate_candidate_images(prompt, candidate_img_amount, filename, session_nr)
                 session_nr = generate_candidate_maskedimages(prompt, candidate_img_amount, filename, session_nr-1, downscale_pct)
             else:
                 break
