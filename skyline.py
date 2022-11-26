@@ -94,7 +94,7 @@ def generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr
     model = replicateclient.models.get("prompthero/openjourney")
     version = model.versions.get("9936c2001faa2194a261c01381f90e65261879985476014a0a37a334593a05eb")
     # prepare extra words for the prompt to enable midjourney version 4
-    # prompt = f"mdjrny-v4 style {prompt}, highly detailed, masterpiece"
+    prompt = f"mdjrny-v4 style {prompt}, highly detailed, masterpiece"
     # call API and generate results
     for output_nr in range(candidate_img_amount):
         response = version.predict(prompt=prompt,          # string of text
@@ -102,7 +102,7 @@ def generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr
                                    height=768,             # Maximum size is 1024x768 or 768x1024 because of memory limits
                                    num_outputs=1,          # Number of images to output (1..4)
                                    num_inference_steps=80, # High value, the better the image quality, because of more refinement steps
-                                   guidance_scale=8)       # High value, the more closely it follows the prompt
+                                   guidance_scale=7)       # High value, the more closely it follows the prompt
         # download the image data from the url
         r = requests.get(response[0], allow_redirects=True, stream=True)
         # load the image into pillow for further processing
@@ -129,24 +129,29 @@ candidate_img_amount = int(input("Enter the amount of candidate images to choose
 print("")
 
 # ask the user for the fixed value 'downscale' percentage
-downscale_pct = int(input("Enter downscale percentage(%) (ex: 33): "))
+downscale_pct = int(input("Enter downscale percentage(%), work best >50 (ex: 66): "))
 
 # give the user a choice to either start with their own image file or generate the first with AI
 startimage = str(input("If you want to start with prompt (press Enter), if you want to start with image (ex: image01.png): "))
 # check if an empty string was given, meaning to go for a prompt
 if len(startimage) == 0:
     print(f"You chose to ask for a prompt")
+    mj_or_dalle = str(input("Enter the preferred image generator model (mj = midjourney) (dalle = DALLE-2): "))
     prompt = str(input("Enter an image prompt (ex: a white siamese cat): "))
     # generate and store candidate AI images using the prompt
-    # session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
-    session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr)
+    if mj_or_dalle == 'mj':
+        session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
+    else:
+        session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr)
     while True:
         selection = int(input("Enter which image candidate you want to keep (0=retry, 1..{}) (ex: 1): ".format(candidate_img_amount)))
         if selection == 0:
             print("you chose to retry")
             prompt = str(input("Enter a new image prompt (ex: {}): ".format(prompt)))
-            # session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
-            session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr-1)
+            if mj_or_dalle == 'mj':
+                session_nr = generate_midjourney_image(prompt, candidate_img_amount, filename, session_nr)
+            else:
+                session_nr = generate_dalle2_image(prompt, candidate_img_amount, filename, session_nr)
         else:
             break
     image = Image.open("candidate_images/{}{}_candidate{}_1024px_original.png".format(filename, session_nr-1, selection))
@@ -157,7 +162,7 @@ else:
     while True:
         if os.path.isfile(startimage):
             # when the filename is found, then confirm
-            print(f"your image '{startimage}'' is found")
+            print(f"your image '{startimage}' is found")
             break
         else:
             print(f"filename {startimage} does not exist")
@@ -286,12 +291,12 @@ ratio  = pref_height/pref_width
 width  = int(4096*(downscale_pct/100))
 height = int(width*ratio)
 # fps = int(input("Enter the 'fps' of the video (ex: 30): "))
-fps = 30
+fps = 60
 # seconds_image = int(input("Enter the duration(sec) of each AI image on the screen (ex: 3): "))
-seconds_image = 3
+seconds_image = 2
 imgsize = 4096
 nr_of_crops = fps * seconds_image
-image_folder = 'images'
+image_folder = filename
 video_name = str(input("Enter the video 'filename' with 'codec' of the video (ex: finalvideo.mp4): "))
 speed = round(1/fps, 4)
 
